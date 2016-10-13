@@ -1,115 +1,149 @@
-from Map import rooms
+#!/usr/bin/python3
 
-import string
+from map import rooms
+from player import *
+from items import *
+from gameparser import *
 
-def remove_punct(text):
+def list_of_items(items):
 
-    txt = ""
-    for c in text:
-        if c.isdigit() or c.isalpha() or c.isspace():
-            txt = txt + c
-    return txt
+    i_list = ""
+    for item in items:
+        i_list = i_list + item["name"] + ", "
 
-def remove_spaces(text):
+    i_list = i_list[:-2]
+    return i_list
 
-    text =text.strip()
-    return text
+def print_room_items(room):
 
-def normalise_input(user_input):
+    print_items = list_of_items(room["items"])
+    if len(print_items) > 1:
+        print("There is " + print_items + " here." + "\n")
+    else:
+        pass
 
-    pass
+def print_inventory_items(items):
+    print_items = list_of_items(inventory)
+    print("You have " + print_items + "." + "\n")
 
-    normalized1 = remove_punct(user_input)
-    normalized2 = remove_spaces(normalized1).lower()
+def print_room(room):
 
-    return normalized2
-
-def display_room(room):
-
-    print("")
-    print(room["name"].upper())
-    print("")
-    print(room["description"])
-    print("")
+    print("\n" + room["name"].upper() + "\n")
+    print(room["description"] + "\n")
+    print_room_items(room)
 
 def exit_leads_to(exits, direction):
 
+    return rooms[exits[direction]]["name"]
 
-    return rooms[exits[direction]] ["name"]
+def print_exit(direction, leads_to):
 
-def print_menu_line(direction, leads_to):
+    print("GO " + direction.upper() + " to " + leads_to + ".")
 
-
-
-    print("Go " + direction.upper() + " to " + leads_to + ".")
-
-def print_menu(exits):
+def print_menu(exits, room_items, inv_items):
 
     print("You can:")
+    for direction in exits:
 
-    for x in exits:
-        leads_to = exit_leads_to(exits,x)
-        print_menu_line(x, leads_to)
+        print_exit(direction, exit_leads_to(exits, direction))
 
+    for item in room_items:
+        print("TAKE " + item["id"] + " to take " + item["name"] + ".")
+    for item in inv_items:
+        print("DROP " + item["id"] + " to drop " + item["name"] + ".")
 
-    print("Where do you want to go?")
+    print("What do you want to do?")
 
-def is_valid_exit(exits, user_input):
+def is_valid_exit(exits, chosen_exit):
+    return chosen_exit in exits
 
-    if user_input in exits:
-        return True
-    else:
-        return False
+def execute_go(direction):
+    global current_room
+    a = is_valid_exit(current_room["exits"], direction)
+    x = ""
+    if a == True:
+        x = current_room["exits"][direction]
+        x = rooms[x]
+        current_room = x
 
-def menu(exits):
+def execute_take(item_id):
 
-    while True:
-        # COMPLETE THIS PART:
-
-        # Display menu
-        print_menu(exits)
-        # Read player's input
-        user_input = str(raw_input(">\n"))
-        # Normalise the input
-        normalise_input(user_input)
-        # Check if the input makes sense (is valid exit)
-        if is_valid_exit(exits, user_input) == True:
-            # If so, return the player's choice
-            return user_input
+    n = 0
+    for i in current_room["items"]:
+        if item_id == i["id"]:
+            inventory.append(i)
+            current_room["items"].remove(i)
+            n = 1
         else:
             pass
+    if n == 0:
+        print("You cannot take that.")
+    else:
+        pass
 
-        #    exits1= str(input())
+def execute_drop(item_id):
+    n = 0
+    for i in inventory:
+        if item_id == i["id"]:
+            current_room["items"].append(i)
+            inventory.remove(i)
+            n = 1
+        else:
+            pass
+    if n == 0:
+        print("You cannot drop that.")
+    else:
+        pass
 
- #   q = normalise_input(exits1)
+def execute_command(command):
 
-  #  while is_valid_exit(exits,q) == False :
+    if 0 == len(command):
+        return
 
-   #     q = normalise_input(exits1)
+    if command[0] == "go":
+        if len(command) > 1:
+            execute_go(command[1])
+        else:
+            print("Go where?")
 
-    #    print_menu(exits)
+    elif command[0] == "take":
+        if len(command) > 1:
+            execute_take(command[1])
+        else:
+            print("Take what?")
 
-    #return q
+    elif command[0] == "drop":
+        if len(command) > 1:
+            execute_drop(command[1])
+        else:
+            print("Drop what?")
+
+    else:
+        print("This makes no sense.")
+
+def menu(exits, room_items, inv_items):
+
+    print_menu(exits, room_items, inv_items)
+
+    user_input = str(raw_input("> "))
+
+    normalised_user_input = normalise_input(user_input)
+
+    return normalised_user_input
 
 def move(exits, direction):
 
     return rooms[exits[direction]]
 
 def main():
-
-    current_room = rooms["Reception"]
-
     while True:
+        print_room(current_room)
+        print_inventory_items(inventory)
 
-        display_room(current_room)
+        command = menu(current_room["exits"], current_room["items"], inventory)
 
-        exits = current_room["exits"]
-
-
-        direction = menu(exits)
-
-
-        current_room = move(exits, direction)
+        execute_command(command)
 
 if __name__ == "__main__":
     main()
+
